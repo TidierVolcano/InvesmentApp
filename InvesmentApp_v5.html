@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Micul Investitor">
+    <title>Micul Investitor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap');
+
+        :root {
+            --bg:        #0b0f1a;
+            --surface:   #131929;
+            --surface2:  #1a2235;
+            --border:    rgba(255,255,255,0.07);
+            --border2:   rgba(255,255,255,0.12);
+            --accent:    #6c8eef;
+            --accent2:   #a78bfa;
+            --green:     #22d47b;
+            --red:       #f04f5b;
+            --orange:    #f59e0b;
+            --text:      #e8eaf2;
+            --text2:     #8892aa;
+            --text3:     #4a5568;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Space Grotesk', -apple-system, sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+            padding-bottom: env(safe-area-inset-bottom);
+            color: var(--text);
+        }
+
+        /* ===== MODALS ===== */
+        .modal {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px);
+            display: flex; align-items: flex-end;
+            z-index: 10000; padding: 0;
+        }
+        @media (min-width: 600px) { .modal { align-items: center; padding: 20px; } }
+
+        .modal-content {
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: 28px 28px 0 0;
+            padding: 30px 20px calc(24px + env(safe-area-inset-bottom));
+            width: 100%;
+            max-height: 92vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            box-shadow: 0 -20px 60px rgba(0,0,0,0.5);
+        }
+        @media (min-width: 600px) {
+            .modal-content {
+                border-radius: 24px;
+                padding: 36px;
+                max-width: 800px;
+                max-height: 90vh;
+            }
+        }
+
+        .modal-content h2 {
+            color: var(--text);
+            margin-bottom: 20px; text-align: center; font-size: 1.6rem;
+            font-weight: 800; letter-spacing: -0.5px;
+        }
+        #playerModal .modal-content {
+            background: linear-gradient(160deg, #131929 0%, #0f1a2e 100%);
+        }
+        #playerModal .modal-content h2 {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; font-size: 2rem; font-weight: 900;
+        }
+
+        .modal-content input {
+            width: 100%; padding: 15px 18px;
+            border: 1.5px solid var(--border2);
+            border-radius: 14px;
+            font-size: 16px; margin-bottom: 12px; text-align: center; font-weight: 700;
+            background: var(--surface2); color: var(--text);
+            -webkit-appearance: none; appearance: none; outline: none;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        .modal-content input:focus { border-color: var(--accent); }
+        .modal-content input::placeholder { color: var(--text3); }
+
+        .modal-btn {
+            width: 100%; padding: 17px; border: none; border-radius: 16px; font-size: 1.05rem;
+            font-weight: 800; cursor: pointer; letter-spacing: 0.2px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+            color: white; margin-top: 10px;
+            touch-action: manipulation; min-height: 54px;
+            font-family: inherit;
+            box-shadow: 0 4px 20px rgba(108,142,239,0.35);
+            transition: opacity 0.15s, transform 0.1s;
+        }
+        .modal-btn:active { opacity: 0.85; transform: scale(0.98); }
+        .modal-btn-secondary {
+            background: var(--surface2) !important;
+            color: var(--text2) !important;
+            border: 1px solid var(--border2) !important;
+            box-shadow: none !important;
+        }
+        .modal-btn-danger {
+            background: linear-gradient(135deg, #f04f5b 0%, #c0392b 100%) !important;
+            box-shadow: 0 4px 16px rgba(240,79,91,0.3) !important;
+        }
+
+        /* ===== COMPANY EDITOR ===== */
+        .company-editor {
+            background: var(--bg); padding: 16px; border-radius: 18px; margin-bottom: 15px;
+            border: 1px solid var(--border);
+        }
+        .company-editor h3 {
+            color: var(--text2); margin-bottom: 14px; font-size: 0.8rem;
+            font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .company-item {
+            background: var(--surface2); padding: 14px 14px 12px; border-radius: 14px; margin-bottom: 10px;
+            border: 1px solid var(--border);
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .company-item-top { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; }
+        .company-item-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .company-item-label {
+            font-size: 0.68rem; color: var(--text3); font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 5px;
+        }
+        .company-item input[type="text"],
+        .company-item input[type="number"] {
+            width: 100%; padding: 9px 12px; border: 1px solid var(--border2); border-radius: 10px;
+            font-size: 15px; margin: 0; font-weight: 600; color: var(--text);
+            background: var(--surface); -webkit-appearance: none; outline: none; font-family: inherit;
+        }
+        .company-item input[type="text"]:focus,
+        .company-item input[type="number"]:focus { border-color: var(--accent); }
+        .company-item input[type="color"] {
+            width: 100%; height: 42px; padding: 4px 6px; border: 1px solid var(--border2);
+            border-radius: 10px; cursor: pointer; -webkit-appearance: none; background: var(--surface);
+        }
+        .company-item .btn-remove-company {
+            padding: 0; background: rgba(240,79,91,0.12); color: var(--red);
+            border: 1px solid rgba(240,79,91,0.25); border-radius: 10px;
+            width: 40px; height: 40px; cursor: pointer; font-size: 1rem;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; touch-action: manipulation;
+        }
+        .company-item .btn-remove-company:active { background: var(--red); color: white; }
+        .logo-wrapper { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+        .logo-toggle { display: flex; gap: 4px; }
+        .logo-btn {
+            width: 32px; height: 32px; background: var(--surface); border: 1px solid var(--border2);
+            border-radius: 8px; font-size: 0.85rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; touch-action: manipulation;
+        }
+        .logo-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+        .logo-btn-file {
+            padding: 5px 10px; background: rgba(34,212,123,0.12); color: var(--green);
+            border: 1px solid rgba(34,212,123,0.3); border-radius: 8px;
+            font-size: 0.75rem; cursor: pointer; font-weight: 700; touch-action: manipulation; white-space: nowrap;
+        }
+        .logo-preview { width: 32px; height: 32px; object-fit: contain; border-radius: 6px; }
+        .logo-display-box {
+            width: 42px; height: 42px; border-radius: 10px; background: var(--surface);
+            border: 1px solid var(--border2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; overflow: hidden; flex-shrink: 0;
+        }
+        .add-company-btn {
+            width: 100%; padding: 13px; background: rgba(34,212,123,0.12); color: var(--green);
+            border: 1px solid rgba(34,212,123,0.3); border-radius: 12px; font-weight: 700;
+            cursor: pointer; font-size: 1rem; min-height: 46px; touch-action: manipulation; font-family: inherit;
+        }
+        .add-company-btn:active { background: rgba(34,212,123,0.22); }
+
+        /* ===== PLAYER LIST ===== */
+        #playerList { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+        .player-item {
+            background: var(--surface2);
+            padding: 14px 16px; border-radius: 18px;
+            cursor: pointer; border: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            touch-action: manipulation; min-height: 72px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+            transition: border-color 0.15s, background 0.15s;
+            position: relative; overflow: hidden;
+        }
+        .player-item::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+            width: 3px; background: linear-gradient(180deg, var(--accent), var(--accent2));
+        }
+        .player-item:active { border-color: var(--accent); background: #1f2d45; }
+        .player-left { display: flex; align-items: center; gap: 12px; }
+        .player-avatar {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 1rem; font-weight: 900;
+            flex-shrink: 0; box-shadow: 0 3px 12px rgba(108,142,239,0.4);
+        }
+        .player-name { font-size: 1.1rem; font-weight: 800; color: var(--text); }
+        .player-stats { margin-top: 5px; font-size: 0.78rem; display: flex; gap: 6px; flex-wrap: wrap; }
+        .player-stat-chip {
+            background: var(--surface); border-radius: 20px; padding: 2px 9px;
+            font-weight: 600; color: var(--text2); font-size: 0.75rem;
+            border: 1px solid var(--border);
+        }
+        .player-actions { display: flex; align-items: center; gap: 7px; }
+        .btn-play-player {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+            color: white; border: none; border-radius: 11px;
+            width: 42px; height: 42px; font-size: 0.95rem; cursor: pointer; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 3px 12px rgba(108,142,239,0.4); touch-action: manipulation;
+        }
+        .btn-play-player:active { opacity: 0.8; transform: scale(0.94); }
+        .btn-delete-player {
+            background: rgba(240,79,91,0.1); color: var(--red);
+            border: 1px solid rgba(240,79,91,0.2); border-radius: 11px;
+            width: 42px; height: 42px; cursor: pointer; flex-shrink: 0; font-size: 0.95rem;
+            display: flex; align-items: center; justify-content: center; touch-action: manipulation;
+        }
+        .btn-delete-player:active { background: var(--red); color: white; }
+
+        /* ===== LAYOUT ===== */
+        .container {
+            padding: 12px;
+            padding-left: max(12px, env(safe-area-inset-left));
+            padding-right: max(12px, env(safe-area-inset-right));
+            max-width: 1400px; margin: 0 auto;
+        }
+        @media (min-width: 600px) { .container { padding: 20px; } }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: 22px; padding: 18px; margin-bottom: 14px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            padding-top: calc(18px + env(safe-area-inset-top));
+            position: relative; overflow: hidden;
+        }
+        .header::before {
+            content: ''; position: absolute;
+            top: -60px; right: -60px;
+            width: 200px; height: 200px;
+            background: radial-gradient(circle, rgba(108,142,239,0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        @media (min-width: 600px) { .header { border-radius: 26px; padding: 24px; } }
+
+        .header-top { display: flex; flex-direction: column; gap: 12px; }
+        .app-title {
+            font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #fff 30%, var(--accent2));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        @media (min-width: 600px) { .app-title { font-size: 1.9rem; } }
+
+        .player-stats-row {
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 8px; flex-wrap: nowrap;
+        }
+        .player-badge {
+            background: rgba(108,142,239,0.15); color: var(--accent);
+            border: 1px solid rgba(108,142,239,0.3);
+            padding: 7px 14px; border-radius: 50px; font-weight: 700; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+            touch-action: manipulation; min-height: 36px; font-size: 0.9rem;
+            white-space: nowrap; max-width: 45%; overflow: hidden; text-overflow: ellipsis;
+            transition: background 0.15s;
+        }
+        .player-badge:active { background: rgba(108,142,239,0.28); }
+
+        .stats { display: flex; gap: 14px; align-items: center; flex-shrink: 0; }
+        @media (min-width: 600px) { .stats { gap: 28px; } }
+        .stat { text-align: right; }
+        .stat-value {
+            font-size: 1.3rem; font-weight: 800; color: var(--green);
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+        }
+        @media (min-width: 600px) { .stat-value { font-size: 1.7rem; } }
+        .stat-label { font-size: 0.68rem; color: var(--text3); white-space: nowrap; margin-top: 2px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* ===== ACTION BUTTONS ===== */
+        .action-buttons {
+            display: flex; gap: 7px; margin-top: 16px;
+            overflow-x: auto; padding-bottom: 4px;
+            scrollbar-width: none;
+        }
+        .action-buttons::-webkit-scrollbar { display: none; }
+        .action-btn {
+            padding: 9px 14px; border: 1px solid var(--border2); border-radius: 50px;
+            font-weight: 700; cursor: pointer; font-size: 0.82rem;
+            color: var(--text2); background: var(--surface2);
+            display: inline-flex; align-items: center; gap: 5px; line-height: 1;
+            min-height: 36px; touch-action: manipulation; white-space: nowrap;
+            flex-shrink: 0; font-family: inherit;
+            transition: all 0.15s;
+        }
+        .action-btn:active { opacity: 0.75; transform: scale(0.96); }
+        .action-btn.active-tab {
+            background: rgba(108,142,239,0.18);
+            border-color: var(--accent); color: var(--accent);
+        }
+        .btn-add-funds       { border-color: rgba(34,212,123,0.35); color: var(--green); }
+        .btn-manage-companies{ border-color: rgba(245,158,11,0.35); color: var(--orange); }
+        .btn-view-chart      { border-color: rgba(167,139,250,0.35); color: var(--accent2); }
+        .btn-history         { border-color: rgba(108,142,239,0.35); color: var(--accent); }
+        .btn-stock-charts    { border-color: rgba(167,139,250,0.35); color: var(--accent2); }
+        .btn-portfolio       { border-color: rgba(34,212,123,0.35); color: var(--green); }
+        .btn-export          { border-color: rgba(34,212,123,0.35); color: var(--green); }
+        .btn-import          { border-color: rgba(108,142,239,0.35); color: var(--accent); }
+
+        /* ===== SAVE INDICATOR ===== */
+        .save-indicator {
+            position: fixed;
+            top: calc(16px + env(safe-area-inset-top));
+            right: max(16px, env(safe-area-inset-right));
+            background: rgba(34,212,123,0.95);
+            color: #0b1a10; font-weight: 800;
+            padding: 9px 18px; border-radius: 50px; font-size: 0.9rem;
+            z-index: 999; display: none;
+            box-shadow: 0 4px 20px rgba(34,212,123,0.4);
+            font-family: inherit;
+        }
+
+        /* ===== CHART ===== */
+        .chart-container {
+            background: var(--surface); border: 1px solid var(--border2);
+            border-radius: 20px; padding: 20px; margin-bottom: 14px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .chart-container h2 { color: var(--text); margin-bottom: 20px; font-weight: 800; font-size: 1.2rem; }
+
+        /* ===== COMPANY CARDS ===== */
+        .companies {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px; margin-bottom: 14px;
+        }
+        @media (max-width: 400px) { .companies { grid-template-columns: 1fr; } }
+
+        .company {
+            border-radius: 20px; padding: 20px;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+            position: relative; overflow: hidden;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .company::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(160deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+            pointer-events: none; border-radius: inherit;
+        }
+        .company::after {
+            content: ''; position: absolute;
+            top: -50px; right: -50px; width: 130px; height: 130px;
+            background: rgba(255,255,255,0.06); border-radius: 50%;
+            pointer-events: none;
+        }
+        .company-logo-display {
+            font-size: 3rem; text-align: center; margin-bottom: 8px;
+            min-height: 68px; display: flex; align-items: center; justify-content: center;
+            position: relative; z-index: 1;
+        }
+        .company-logo-img { width: 66px; height: 66px; object-fit: contain; border-radius: 12px; }
+        .company-name {
+            font-size: 1.25rem; font-weight: 800; color: white; text-align: center;
+            margin-bottom: 14px; text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            position: relative; z-index: 1;
+        }
+        .company-stats {
+            background: rgba(0,0,0,0.28); border-radius: 14px; padding: 12px 14px;
+            margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(4px);
+            position: relative; z-index: 1;
+        }
+        .price {
+            font-size: 1.3rem; font-weight: 800; color: white;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .owned {
+            text-align: center; color: rgba(255,255,255,0.85); font-weight: 700;
+            font-size: 0.9rem; margin-top: 6px;
+            background: rgba(255,255,255,0.12); border-radius: 8px; padding: 4px 8px;
+            display: inline-block; width: 100%;
+        }
+
+        /* ===== BUY/SELL BUTTONS ===== */
+        .btn {
+            flex: 1; padding: 13px; border: none; border-radius: 14px; font-size: 0.95rem;
+            font-weight: 800; cursor: pointer; font-family: inherit;
+            transition: transform 0.1s, opacity 0.1s;
+            min-height: 48px; touch-action: manipulation;
+            position: relative; z-index: 1;
+        }
+        .btn:active { transform: scale(0.95); opacity: 0.85; }
+        .buttons { display: flex; gap: 7px; align-items: stretch; position: relative; z-index: 1; }
+
+        .qty-wrapper {
+            display: flex; align-items: center;
+            background: rgba(0,0,0,0.3);
+            border-radius: 14px; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(4px);
+        }
+        .qty-arrows { display: flex; flex-direction: column; border-left: 1px solid rgba(255,255,255,0.15); }
+        .qty-btn {
+            background: transparent; border: none; color: rgba(255,255,255,0.85);
+            font-size: 0.6rem; font-weight: 900; cursor: pointer;
+            padding: 6px 9px; line-height: 1;
+            transition: background 0.15s; user-select: none; flex: 1;
+            min-height: 22px; min-width: 30px; touch-action: manipulation;
+        }
+        .qty-btn:active { background: rgba(255,255,255,0.35); }
+        .qty-btn:first-child { border-bottom: 1px solid rgba(255,255,255,0.15); }
+        .qty-input {
+            width: 40px; padding: 8px 3px; border: none; background: transparent;
+            font-size: 16px; font-weight: 800; text-align: center; outline: none;
+            color: white; -webkit-appearance: none; -moz-appearance: textfield;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .qty-input::-webkit-outer-spin-button,
+        .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .btn-buy { background: var(--green); color: #0a1a10; box-shadow: 0 4px 14px rgba(34,212,123,0.35); }
+        .btn-sell { background: var(--orange); color: #1a0f00; box-shadow: 0 4px 14px rgba(245,158,11,0.3); }
+        .btn-sell:disabled { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.35); box-shadow: none; }
+
+        /* ===== NEXT WEEK ===== */
+        .next-week {
+            background: var(--surface); border: 1px solid var(--border2);
+            border-radius: 20px; padding: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .btn-next-week {
+            width: 100%; padding: 20px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+            color: white; border: none; border-radius: 16px;
+            font-size: 1.15rem; font-weight: 800; cursor: pointer;
+            min-height: 64px; touch-action: manipulation; font-family: inherit;
+            box-shadow: 0 6px 28px rgba(108,142,239,0.45);
+            position: relative; overflow: hidden;
+            animation: pulse-glow 3s ease-in-out infinite;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 6px 28px rgba(108,142,239,0.45); }
+            50%       { box-shadow: 0 6px 40px rgba(167,139,250,0.65); }
+        }
+        @media (min-width: 600px) { .btn-next-week { font-size: 1.35rem; padding: 24px; } }
+        .btn-next-week:active { opacity: 0.88; transform: scale(0.99); animation: none; }
+
+        /* ===== PANELS ===== */
+        .section-panel {
+            background: var(--surface); border: 1px solid var(--border2);
+            border-radius: 20px; padding: 20px; margin-bottom: 14px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3); display: none;
+        }
+        .section-panel h2 { color: var(--text); margin-bottom: 18px; font-size: 1.2rem; font-weight: 800; }
+
+        /* ===== HISTORY TABLE ===== */
+        .history-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .history-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 500px; }
+        .history-table th {
+            background: var(--surface2);
+            color: var(--text2); padding: 12px 10px; text-align: left; white-space: nowrap;
+            font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.7px; font-weight: 700;
+        }
+        .history-table th:first-child { border-radius: 10px 0 0 10px; }
+        .history-table th:last-child { border-radius: 0 10px 10px 0; }
+        .history-table td { padding: 11px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
+        .history-table tr:last-child td { border-bottom: none; }
+        .history-table tr:hover td { background: rgba(255,255,255,0.03); }
+        .badge-buy {
+            background: rgba(34,212,123,0.15); color: var(--green);
+            padding: 3px 10px; border-radius: 20px; font-weight: 700;
+            font-size: 0.82rem; white-space: nowrap; border: 1px solid rgba(34,212,123,0.25);
+        }
+        .badge-sell {
+            background: rgba(245,158,11,0.15); color: var(--orange);
+            padding: 3px 10px; border-radius: 20px; font-weight: 700;
+            font-size: 0.82rem; white-space: nowrap; border: 1px solid rgba(245,158,11,0.25);
+        }
+        .history-empty { text-align: center; color: var(--text3); padding: 40px; font-size: 1rem; }
+
+        /* ===== STOCK CHARTS ===== */
+        .stock-charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+        .stock-chart-card {
+            background: var(--surface2); border-radius: 16px; padding: 16px;
+            border: 1px solid var(--border);
+        }
+        .stock-chart-card h3 { color: var(--text); margin-bottom: 12px; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 700; }
+        .profit-breakdown {
+            background: var(--surface2); border-radius: 16px; padding: 16px;
+            margin-bottom: 16px; border: 1px solid var(--border);
+        }
+        .profit-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 0.92rem; gap: 10px; color: var(--text); }
+        .profit-row:last-child { border-bottom: none; font-weight: 800; font-size: 0.98rem; }
+        .profit-pos { color: var(--green); font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        .profit-neg { color: var(--red); font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+
+        /* ===== PORTFOLIO ===== */
+        .portfolio-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+        .portfolio-card { border-radius: 18px; padding: 16px; color: white; position: relative; overflow: hidden; }
+        .portfolio-card::before { content: ''; position: absolute; top: -25px; right: -25px; width: 90px; height: 90px; background: rgba(255,255,255,0.07); border-radius: 50%; }
+        .portfolio-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .portfolio-card-emoji { font-size: 1.8rem; }
+        .portfolio-card-name { font-size: 1.1rem; font-weight: 800; }
+        .portfolio-card-qty { font-size: 0.8rem; opacity: 0.75; margin-top: 2px; }
+        .portfolio-stat-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.12); font-size: 0.88rem; }
+        .portfolio-stat-row:last-child { border-bottom: none; }
+        .portfolio-stat-label { opacity: 0.75; }
+        .portfolio-stat-value { font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        .portfolio-profit-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.9rem; margin-top: 10px; }
+        .portfolio-profit-pos { background: rgba(34,212,123,0.2); color: #7effc4; border: 1px solid rgba(34,212,123,0.35); }
+        .portfolio-profit-neg { background: rgba(240,79,91,0.2); color: #ffaaae; border: 1px solid rgba(240,79,91,0.35); }
+        .portfolio-summary {
+            background: linear-gradient(135deg, #1a2235, #0f1a2e);
+            border: 1px solid var(--border2);
+            border-radius: 16px; padding: 18px 20px; margin-bottom: 16px; color: white;
+            display: flex; gap: 20px; flex-wrap: wrap; justify-content: space-around;
+        }
+        .portfolio-summary-stat { text-align: center; }
+        .portfolio-summary-val { font-size: 1.3rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+        .portfolio-summary-lbl { font-size: 0.7rem; opacity: 0.6; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .portfolio-empty { text-align: center; color: var(--text3); padding: 50px; font-size: 1rem; }
+
+        /* ===== MISC ===== */
+        .action-message {
+            background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3);
+            border-radius: 14px; padding: 13px; margin-top: 12px;
+            text-align: center; font-size: 1rem; font-weight: 700; display: none;
+            color: var(--orange);
+        }
+        .funds-tab {
+            flex: 1; padding: 13px; border: 1px solid var(--border2); border-radius: 12px;
+            font-size: 0.95rem; font-weight: 700; cursor: pointer;
+            background: var(--surface2); color: var(--text2);
+            min-height: 48px; touch-action: manipulation; font-family: inherit;
+            transition: all 0.15s;
+        }
+        .funds-tab-active {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%) !important;
+            color: white !important; border-color: transparent !important;
+        }
+
+        /* ===== iOS EXPORT FALLBACK ===== */
+        .export-modal-text {
+            background: var(--bg); border-radius: 10px; padding: 12px;
+            font-size: 12px; font-family: 'JetBrains Mono', monospace;
+            overflow-x: auto; max-height: 180px; overflow-y: auto;
+            word-break: break-all; margin-bottom: 12px; color: var(--text2);
+            border: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="playerModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>🎮 Cine Joacă?</h2>
+            <div id="playerList"></div>
+            <button class="modal-btn" onclick="openNewPlayer()">➕ Jucător Nou</button>
+        </div>
+    </div>
+
+    <div id="newPlayerModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>✨ Jucător Nou</h2>
+            <input type="text" id="nameInput" placeholder="Numele tău" maxlength="15" autocomplete="off" autocorrect="off" autocapitalize="words">
+            <input type="number" id="initialFunds" placeholder="Fonduri: 1000" value="1000" inputmode="numeric">
+            <button class="modal-btn" onclick="createPlayer()">🎉 Începe!</button>
+            <button class="modal-btn modal-btn-secondary" onclick="backToList()">↩️ Înapoi</button>
+        </div>
+    </div>
+
+    <div id="addFundsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>💰 Fonduri</h2>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <button id="tabAdd" class="funds-tab funds-tab-active" onclick="switchFundsTab('add')">➕ Adaugă</button>
+                <button id="tabWithdraw" class="funds-tab" onclick="switchFundsTab('withdraw')">➖ Retrage</button>
+            </div>
+            <div id="fundsAvailable" style="text-align:center; color:#8892aa; font-size:1rem; margin-bottom:10px; display:none;"></div>
+            <input type="number" id="fundsAmount" placeholder="100" value="100" min="1" inputmode="numeric">
+            <div id="fundsError" style="color:#f04f5b; text-align:center; font-weight:bold; font-size:1rem; margin-bottom:10px; display:none;"></div>
+            <button id="fundsActionBtn" class="modal-btn" onclick="doFundsAction()">✅ Adaugă</button>
+            <button class="modal-btn modal-btn-secondary" onclick="closeModal('addFundsModal')">❌ Anulează</button>
+        </div>
+    </div>
+
+    <div id="manageCompaniesModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>🏢 Gestionează Companii</h2>
+            <div class="company-editor">
+                <h3>Companiile Tale:</h3>
+                <div id="companyList"></div>
+                <button class="add-company-btn" onclick="addCompany()">➕ Adaugă Companie</button>
+            </div>
+            <button class="modal-btn" onclick="saveCompanies()">✅ Salvează</button>
+            <button class="modal-btn modal-btn-secondary" onclick="closeModal('manageCompaniesModal')">❌ Anulează</button>
+        </div>
+    </div>
+
+    <!-- iOS Export Modal (fallback pentru Safari care nu suportă download link) -->
+    <div id="exportModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>📤 Export Date</h2>
+            <p style="color:#666; margin-bottom:12px; text-align:center; font-size:0.95rem;">Apasă <strong>Copiază</strong> și salvează textul într-un fișier .json</p>
+            <div id="exportText" class="export-modal-text"></div>
+            <button class="modal-btn" onclick="copyExportData()">📋 Copiază în Clipboard</button>
+            <button class="modal-btn modal-btn-secondary" onclick="closeModal('exportModal')">❌ Închide</button>
+        </div>
+    </div>
+
+    <div id="saveIndicator" class="save-indicator">💾 Salvat!</div>
+
+    <div class="container" id="game" style="display: none;">
+        <div class="header">
+            <div class="header-top">
+                <h1 class="app-title">✨ Micul Investitor</h1>
+                <div class="player-stats-row">
+                    <span class="player-badge" onclick="changePlr()">👤 <span id="plrName"></span></span>
+                    <div class="stats">
+                        <div class="stat">
+                            <div class="stat-value" id="money">0</div>
+                            <div class="stat-label">💰 Bănuți</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value" id="total" style="color: #6c8eef;">0</div>
+                            <div class="stat-label">💎 Total</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value" id="profit">0</div>
+                            <div class="stat-label">📈 Profit</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button class="action-btn btn-add-funds" onclick="showAddFunds()"><span>💰</span><span>Fonduri</span></button>
+                <button class="action-btn btn-manage-companies" onclick="showManageCompanies()"><span>🏢</span><span>Companii</span></button>
+                <button class="action-btn btn-view-chart" onclick="toggleChart()"><span>📊</span><span id="chartToggle">Grafic</span></button>
+                <button class="action-btn btn-history" id="historyToggle" onclick="toggleHistory()"><span>📋</span><span>Istoric</span></button>
+                <button class="action-btn btn-stock-charts" id="stockChartsToggle" onclick="toggleStockCharts()"><span>📈</span><span>Acțiuni</span></button>
+                <button class="action-btn btn-portfolio" id="portfolioToggle" onclick="togglePortfolio()"><span>💼</span><span>Portofoliu</span></button>
+                <button class="action-btn btn-export" onclick="exportData()"><span>📤</span><span>Export</span></button>
+                <button class="action-btn btn-import" onclick="document.getElementById('importFile').click()"><span>📥</span><span>Import</span></button>
+                <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)">
+            </div>
+            <div id="msg" class="action-message"></div>
+        </div>
+
+        <div class="chart-container" id="chartContainer" style="display: none;">
+            <h2>📊 Evoluția Portofoliului</h2>
+            <canvas id="portfolioChart"></canvas>
+        </div>
+
+        <div class="companies" id="companies"></div>
+
+        <div class="section-panel" id="portfolioPanel">
+            <h2>💼 Portofoliul Meu</h2>
+            <div id="portfolioContent"></div>
+        </div>
+
+        <div class="section-panel" id="historyPanel">
+            <h2>📋 Istoricul Tranzacțiilor</h2>
+            <div id="historyContent"></div>
+        </div>
+
+        <div class="section-panel" id="stockChartsPanel">
+            <h2>📈 Grafice Individuale pe Acțiuni</h2>
+            <div id="profitBreakdown" class="profit-breakdown"></div>
+            <div class="stock-charts-grid" id="stockChartsGrid"></div>
+        </div>
+
+        <div class="next-week">
+            <button class="btn-next-week" onclick="nextWeek()">
+                📅 Săptămâna Următoare (Week <span id="week">1</span>, <span id="year">2026</span>) ⏭️
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const defaultCompanies = [
+            { id: 'netflix', name: 'Netflix', emoji: '📺', logoUrl: 'https://logo.clearbit.com/netflix.com', color: '#e74c3c', price: 10 },
+            { id: 'disney', name: 'Disney', emoji: '🏰', logoUrl: 'https://logo.clearbit.com/disney.com', color: '#3498db', price: 12 },
+            { id: 'tesla', name: 'Tesla', emoji: '🚗', logoUrl: 'https://logo.clearbit.com/tesla.com', color: '#2ecc71', price: 20 },
+            { id: 'apple', name: 'Apple', emoji: '📱', logoUrl: 'https://logo.clearbit.com/apple.com', color: '#9b59b6', price: 18 }
+        ];
+        const colors = ['#e74c3c', '#3498db', '#f1c40f', '#e67e22', '#2ecc71', '#9b59b6', '#1abc9c', '#34495e'];
+        let currentPlayer = null, state = {}, chart = null;
+
+        // Detect iOS Safari
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        function save() {
+            if (!currentPlayer) return;
+            try {
+                localStorage.setItem('player:' + currentPlayer, JSON.stringify(state));
+                const ind = document.getElementById('saveIndicator');
+                ind.style.display = 'block';
+                setTimeout(() => ind.style.display = 'none', 1500);
+            } catch (e) { console.error(e); }
+        }
+        function load(name) {
+            try {
+                const data = localStorage.getItem('player:' + name);
+                return data ? JSON.parse(data) : null;
+            } catch (e) { return null; }
+        }
+        function loadAll() {
+            const players = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('player:')) {
+                    try { players.push(JSON.parse(localStorage.getItem(key))); } catch (e) {}
+                }
+            }
+            return players;
+        }
+        function getTotal(p) {
+            let t = p.money;
+            Object.keys(p.portfolio || {}).forEach(id => {
+                t += (p.portfolio[id] || 0) * (p.prices[id] || 0);
+            });
+            return t;
+        }
+        function showList() {
+            const players = loadAll();
+            const list = document.getElementById('playerList');
+            if (players.length === 0) { openNewPlayer(); return; }
+            list.innerHTML = players.map(p => {
+                const initials = p.name.slice(0,2).toUpperCase();
+                return `
+                <div class="player-item" onclick="selectPlayer('${p.name}')">
+                    <div class="player-left">
+                        <div class="player-avatar">${initials}</div>
+                        <div>
+                            <div class="player-name">${p.name}</div>
+                            <div class="player-stats">
+                                <span class="player-stat-chip">💰 ${p.money}</span>
+                                <span class="player-stat-chip">💎 ${getTotal(p)}</span>
+                                <span class="player-stat-chip">📅 Săpt. ${p.week || 1}, ${p.year || 2026}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="player-actions">
+                        <button class="btn-play-player" onclick="selectPlayer('${p.name}')">▶</button>
+                        <button class="btn-delete-player" onclick="deletePlayer(event,'${p.name}')">🗑</button>
+                    </div>
+                </div>`;
+            }).join('');
+            document.getElementById('playerModal').style.display = 'flex';
+            document.getElementById('newPlayerModal').style.display = 'none';
+        }
+        function openNewPlayer() {
+            document.getElementById('playerModal').style.display = 'none';
+            document.getElementById('newPlayerModal').style.display = 'flex';
+            document.getElementById('nameInput').value = '';
+            setTimeout(() => document.getElementById('nameInput').focus(), 300);
+        }
+        function backToList() {
+            document.getElementById('newPlayerModal').style.display = 'none';
+            showList();
+        }
+        function createPlayer() {
+            const name = document.getElementById('nameInput').value.trim();
+            if (!name) { alert('Scrie un nume!'); return; }
+            const initialMoney = parseInt(document.getElementById('initialFunds').value) || 1000;
+            const customPrices = {};
+            defaultCompanies.forEach(c => customPrices[c.id] = c.price);
+            state = {
+                name, money: initialMoney, initialMoney,
+                portfolio: {}, prices: customPrices,
+                initialPrices: {...customPrices},
+                companies: JSON.parse(JSON.stringify(defaultCompanies)),
+                week: 1, year: new Date().getFullYear(),
+                history: [{week: 1, year: new Date().getFullYear(), total: initialMoney}],
+                transactions: [], priceHistory: {}, costBasis: {}, realizedProfit: 0
+            };
+            currentPlayer = name;
+            save();
+            document.getElementById('newPlayerModal').style.display = 'none';
+            document.getElementById('game').style.display = 'block';
+            document.getElementById('plrName').textContent = name;
+            render();
+        }
+        function selectPlayer(name) {
+            currentPlayer = name;
+            state = load(name);
+            if (!state.history) state.history = [{week: 1, year: 2026, total: state.money}];
+            if (!state.week) state.week = 1;
+            if (!state.year) state.year = new Date().getFullYear();
+            if (!state.companies) state.companies = defaultCompanies;
+            if (!state.transactions) state.transactions = [];
+            if (!state.priceHistory) state.priceHistory = {};
+            if (!state.costBasis) state.costBasis = {};
+            if (state.realizedProfit === undefined) state.realizedProfit = 0;
+            document.getElementById('playerModal').style.display = 'none';
+            document.getElementById('game').style.display = 'block';
+            document.getElementById('plrName').textContent = name;
+            render();
+        }
+        function deletePlayer(event, name) {
+            event.stopPropagation();
+            if (!confirm(`Ștergi jucătorul "${name}"? Toate datele vor fi pierdute!`)) return;
+            localStorage.removeItem('player:' + name);
+            if (currentPlayer === name) { currentPlayer = null; state = {}; }
+            showList();
+        }
+        function changePlr() {
+            if (confirm('Schimbi jucătorul?')) {
+                document.getElementById('game').style.display = 'none';
+                showList();
+            }
+        }
+        function showMsg(txt) {
+            const m = document.getElementById('msg');
+            m.textContent = txt;
+            m.style.display = 'block';
+            setTimeout(() => m.style.display = 'none', 2500);
+        }
+        function calcTotal() {
+            let t = state.money;
+            Object.keys(state.portfolio).forEach(id => {
+                t += state.portfolio[id] * state.prices[id];
+            });
+            return t;
+        }
+        function calcProfit() {
+            let unrealized = 0;
+            Object.keys(state.portfolio).forEach(id => {
+                const owned = state.portfolio[id] || 0;
+                if (owned > 0) {
+                    const avgCost = (state.costBasis[id] || 0) / owned;
+                    unrealized += (state.prices[id] - avgCost) * owned;
+                }
+            });
+            return Math.round(((state.realizedProfit || 0) + unrealized) * 10) / 10;
+        }
+        let fundsMode = 'add';
+        function showAddFunds() {
+            fundsMode = 'add';
+            document.getElementById('addFundsModal').style.display = 'flex';
+            document.getElementById('fundsAmount').value = 100;
+            document.getElementById('fundsError').style.display = 'none';
+            switchFundsTab('add');
+        }
+        function switchFundsTab(mode) {
+            fundsMode = mode;
+            const tabAdd = document.getElementById('tabAdd');
+            const tabWith = document.getElementById('tabWithdraw');
+            const btn = document.getElementById('fundsActionBtn');
+            const available = document.getElementById('fundsAvailable');
+            document.getElementById('fundsError').style.display = 'none';
+            if (mode === 'add') {
+                tabAdd.classList.add('funds-tab-active'); tabWith.classList.remove('funds-tab-active');
+                btn.textContent = '✅ Adaugă'; btn.className = 'modal-btn';
+                available.style.display = 'none';
+            } else {
+                tabWith.classList.add('funds-tab-active'); tabAdd.classList.remove('funds-tab-active');
+                btn.textContent = '💸 Retrage'; btn.className = 'modal-btn modal-btn-danger';
+                available.style.display = 'block';
+                available.textContent = `💰 Disponibil: ${state.money} bănuți`;
+            }
+        }
+        function doFundsAction() {
+            const amount = parseInt(document.getElementById('fundsAmount').value);
+            const errEl = document.getElementById('fundsError');
+            errEl.style.display = 'none';
+            if (!amount || amount <= 0) {
+                errEl.textContent = '⚠️ Introdu o sumă validă!'; errEl.style.display = 'block'; return;
+            }
+            if (fundsMode === 'add') {
+                state.money += amount; state.initialMoney += amount;
+                showMsg(`✅ +${amount} 💰 adăugați!`);
+                closeModal('addFundsModal'); render(); save();
+            } else {
+                if (amount > state.money) {
+                    errEl.textContent = `❌ Nu ai suficienți bănuți! Disponibil: ${state.money}`;
+                    errEl.style.display = 'block'; return;
+                }
+                state.money -= amount; state.initialMoney = Math.max(0, state.initialMoney - amount);
+                showMsg(`💸 -${amount} 💰 retrași!`);
+                closeModal('addFundsModal'); render(); save();
+            }
+        }
+        function showManageCompanies() {
+            renderCompanyList();
+            document.getElementById('manageCompaniesModal').style.display = 'flex';
+        }
+        function renderCompanyList() {
+            const list = document.getElementById('companyList');
+            list.innerHTML = state.companies.map((c, i) => {
+                const logoDisplay = c.logoUrl
+                    ? `<img src="${c.logoUrl}" class="logo-preview" style="width:32px;height:32px;" onerror="this.style.display='none'">`
+                    : `<span style="font-size:1.4rem;line-height:1">${c.emoji||'🏢'}</span>`;
+                const logoInput = c.logoUrl
+                    ? (c.logoUrl.startsWith('data:')
+                        ? `<button class="logo-btn-file" onclick="triggerFileInput(${i})">📂 Schimbă</button>`
+                        : `<input type="text" placeholder="URL logo" value="${c.logoUrl}" id="logo_${i}" style="font-size:13px;width:100%;">`)
+                    : `<input type="text" placeholder="emoji" value="${c.emoji}" id="emoji_${i}" maxlength="2" style="font-size:1.3rem;width:52px;text-align:center;">`;
+                return `<div class="company-item">
+                    <input type="file" id="fileInput_${i}" accept="image/*" style="display:none;" onchange="loadLocalImage(event, ${i})">
+                    <div class="company-item-top">
+                        <div class="logo-wrapper">
+                            <div class="logo-display-box">${logoDisplay}</div>
+                            <div class="logo-toggle">
+                                <button class="logo-btn ${!c.logoUrl ? 'active' : ''}" onclick="toggleLogo(${i},'emoji')" title="Emoji">🎨</button>
+                                <button class="logo-btn ${c.logoUrl && !c.logoUrl.startsWith('data:') ? 'active' : ''}" onclick="toggleLogo(${i},'url')" title="URL">🌐</button>
+                                <button class="logo-btn ${c.logoUrl && c.logoUrl.startsWith('data:') ? 'active' : ''}" onclick="toggleLogo(${i},'file')" title="Fisier">📁</button>
+                            </div>
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <div class="company-item-label">Nume</div>
+                            <input type="text" value="${c.name}" id="name_${i}" autocorrect="off" placeholder="Nume companie">
+                            <div style="margin-top:8px;">${logoInput}</div>
+                        </div>
+                        <button class="btn-remove-company" onclick="removeCompany(${i})" title="Sterge">🗑</button>
+                    </div>
+                    <div class="company-item-bottom">
+                        <div>
+                            <div class="company-item-label">Pret initial</div>
+                            <input type="number" value="${state.prices[c.id]}" id="price_${i}" inputmode="numeric" placeholder="Pret">
+                        </div>
+                        <div>
+                            <div class="company-item-label">Culoare card</div>
+                            <input type="color" value="${c.color}" id="color_${i}">
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        function triggerFileInput(i) {
+            const el = document.getElementById('fileInput_' + i);
+            if (el) el.click();
+        }
+        function loadLocalImage(event, i) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                state.companies[i].logoUrl = e.target.result;
+                state.companies[i].emoji = '';
+                renderCompanyList();
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+        function toggleLogo(i, mode) {
+            if (mode === 'url') {
+                state.companies[i].logoUrl = 'https://logo.clearbit.com/';
+                state.companies[i].emoji = '';
+            } else if (mode === 'file') {
+                state.companies[i].logoUrl = '';
+                state.companies[i].emoji = '🏢';
+                renderCompanyList();
+                setTimeout(() => {
+                    const el = document.getElementById('fileInput_' + i);
+                    if (el) el.click();
+                }, 100);
+                return;
+            } else {
+                state.companies[i].logoUrl = '';
+                state.companies[i].emoji = '🏢';
+            }
+            renderCompanyList();
+        }
+        function addCompany() {
+            const newC = { id: 'company_' + Date.now(), name: 'Nouă', emoji: '🏢', logoUrl: '', color: colors[state.companies.length % colors.length], price: 10 };
+            state.companies.push(newC);
+            state.prices[newC.id] = 10; state.initialPrices[newC.id] = 10;
+            renderCompanyList();
+        }
+        function removeCompany(i) {
+            if (confirm('Ștergi?')) {
+                const id = state.companies[i].id;
+                delete state.prices[id]; delete state.portfolio[id];
+                state.companies.splice(i, 1); renderCompanyList();
+            }
+        }
+        function saveCompanies() {
+            state.companies.forEach((c, i) => {
+                const logo = document.getElementById('logo_' + i);
+                const emoji = document.getElementById('emoji_' + i);
+                c.name = document.getElementById('name_' + i).value;
+                c.color = document.getElementById('color_' + i).value;
+                // If logoUrl is already a data: URL (local image), keep it; otherwise read from input
+                if (logo) {
+                    c.logoUrl = logo.value;
+                } else if (!c.logoUrl || !c.logoUrl.startsWith('data:')) {
+                    c.logoUrl = '';
+                }
+                c.emoji = emoji ? emoji.value : '';
+                state.prices[c.id] = parseInt(document.getElementById('price_' + i).value);
+            });
+            closeModal('manageCompaniesModal');
+            showMsg('✅ Salvat!'); render(); save();
+        }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        function toggleChart() {
+            const c = document.getElementById('chartContainer');
+            const t = document.getElementById('chartToggle');
+            if (c.style.display === 'none') {
+                c.style.display = 'block'; t.textContent = 'Ascunde'; renderChart();
+            } else {
+                c.style.display = 'none'; t.textContent = 'Grafic';
+            }
+        }
+        function renderChart() {
+            const ctx = document.getElementById('portfolioChart').getContext('2d');
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: state.history.map(h => `W${h.week} ${h.year}`),
+                    datasets: [{ label: 'Valoare', data: state.history.map(h => h.total), borderColor: '#6c8eef', backgroundColor: 'rgba(108,142,239,0.12)', borderWidth: 2.5, fill: true, tension: 0.4 }]
+                },
+                options: { responsive: true, plugins: { legend: { labels: { color: '#8892aa' } } }, scales: { y: { beginAtZero: false, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8892aa', callback: v => v + ' 💰' } }, x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8892aa', maxTicksLimit: 8 } } } }
+            });
+        }
+        function togglePortfolio() {
+            const panel = document.getElementById('portfolioPanel');
+            const btn = document.getElementById('portfolioToggle');
+            const isOpen = panel.style.display === 'block';
+            panel.style.display = isOpen ? 'none' : 'block';
+            btn.classList.toggle('active-tab', !isOpen);
+            if (!isOpen) renderPortfolio();
+        }
+        function renderPortfolio() {
+            const el = document.getElementById('portfolioContent');
+            const owned = state.companies.filter(c => (state.portfolio[c.id] || 0) > 0);
+            if (owned.length === 0) {
+                el.innerHTML = '<div class="portfolio-empty">💼 Nu ai nicio acțiune deținută încă.<br>Cumpără ceva pentru a-ți construi portofoliul!</div>'; return;
+            }
+            let totalInvested = 0, totalCurrentValue = 0, totalProfit = 0;
+            owned.forEach(c => {
+                const qty = state.portfolio[c.id];
+                const avgCost = (state.costBasis[c.id] || 0) / qty;
+                totalInvested += avgCost * qty; totalCurrentValue += state.prices[c.id] * qty;
+                totalProfit += (state.prices[c.id] - avgCost) * qty;
+            });
+            const summaryHtml = `<div class="portfolio-summary">
+                <div class="portfolio-summary-stat"><div class="portfolio-summary-val">${owned.length}</div><div class="portfolio-summary-lbl">Companii</div></div>
+                <div class="portfolio-summary-stat"><div class="portfolio-summary-val">${Object.values(state.portfolio).reduce((a,b)=>a+b,0)}</div><div class="portfolio-summary-lbl">Total acțiuni</div></div>
+                <div class="portfolio-summary-stat"><div class="portfolio-summary-val">${Math.round(totalInvested)} 💰</div><div class="portfolio-summary-lbl">Investit</div></div>
+                <div class="portfolio-summary-stat"><div class="portfolio-summary-val">${Math.round(totalCurrentValue)} 💰</div><div class="portfolio-summary-lbl">Valoare actuală</div></div>
+                <div class="portfolio-summary-stat"><div class="portfolio-summary-val" style="color:${totalProfit>=0?'#2ecc71':'#e74c3c'}">${totalProfit>=0?'+':''}${Math.round(totalProfit)} 💰</div><div class="portfolio-summary-lbl">Profit nerealizat</div></div>
+            </div>`;
+            const cardsHtml = `<div class="portfolio-grid">` + owned.map(c => {
+                const qty = state.portfolio[c.id];
+                const avgCost = Math.round(((state.costBasis[c.id]||0)/qty)*10)/10;
+                const currentPrice = state.prices[c.id];
+                const profit = Math.round((currentPrice - avgCost) * qty * 10) / 10;
+                const profitPct = avgCost > 0 ? Math.round(((currentPrice-avgCost)/avgCost)*1000)/10 : 0;
+                const isPos = profit >= 0;
+                return `<div class="portfolio-card" style="background:${c.color};">
+                    <div class="portfolio-card-header">
+                        <div class="portfolio-card-emoji">${c.emoji||'🏢'}</div>
+                        <div><div class="portfolio-card-name">${c.name}</div><div class="portfolio-card-qty">${qty} acțiuni deținute</div></div>
+                    </div>
+                    <div class="portfolio-stat-row"><span class="portfolio-stat-label">Preț mediu achiziție</span><span class="portfolio-stat-value">${avgCost} 💰</span></div>
+                    <div class="portfolio-stat-row"><span class="portfolio-stat-label">Preț actual</span><span class="portfolio-stat-value">${currentPrice} 💰</span></div>
+                    <div class="portfolio-stat-row"><span class="portfolio-stat-label">Valoare totală</span><span class="portfolio-stat-value">${currentPrice*qty} 💰</span></div>
+                    <div><span class="portfolio-profit-badge ${isPos?'portfolio-profit-pos':'portfolio-profit-neg'}">${isPos?'▲':'▼'} ${isPos?'+':''}${profit} 💰 (${isPos?'+':''}${profitPct}%)</span></div>
+                </div>`;
+            }).join('') + `</div>`;
+            el.innerHTML = summaryHtml + cardsHtml;
+        }
+        function toggleHistory() {
+            const panel = document.getElementById('historyPanel');
+            const btn = document.getElementById('historyToggle');
+            const isOpen = panel.style.display === 'block';
+            panel.style.display = isOpen ? 'none' : 'block';
+            btn.classList.toggle('active-tab', !isOpen);
+            if (!isOpen) renderHistory();
+        }
+        function toggleStockCharts() {
+            const panel = document.getElementById('stockChartsPanel');
+            const btn = document.getElementById('stockChartsToggle');
+            const isOpen = panel.style.display === 'block';
+            panel.style.display = isOpen ? 'none' : 'block';
+            btn.classList.toggle('active-tab', !isOpen);
+            if (!isOpen) renderStockCharts();
+        }
+        function renderHistory() {
+            const el = document.getElementById('historyContent');
+            const txs = state.transactions || [];
+            if (txs.length === 0) {
+                el.innerHTML = '<div class="history-empty">🤷 Nu există tranzacții încă. Cumpără sau vinde ceva!</div>'; return;
+            }
+            el.innerHTML = `<div class="history-table-wrap"><table class="history-table">
+                <thead><tr>
+                    <th>Săptămâna</th><th>Companie</th><th>Acțiune</th>
+                    <th>Cant.</th><th>Preț</th><th>Total</th><th>Câștig/Pierdere</th>
+                </tr></thead>
+                <tbody>${txs.map(tx => `
+                    <tr>
+                        <td>W${tx.week} ${tx.year}</td>
+                        <td>${tx.emoji} ${tx.company}</td>
+                        <td><span class="${tx.action==='buy'?'badge-buy':'badge-sell'}">${tx.action==='buy'?'📈 Cumpărare':'📉 Vânzare'}</span></td>
+                        <td>${tx.qty}</td>
+                        <td>${tx.price} 💰</td>
+                        <td>${tx.total} 💰</td>
+                        <td>${tx.action==='sell'&&tx.gainLoss!==undefined
+                            ?`<span class="${tx.gainLoss>=0?'profit-pos':'profit-neg'}">${tx.gainLoss>=0?'+':''}${tx.gainLoss} 💰</span>`
+                            :'<span style="color:#aaa">—</span>'}</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table></div>`;
+        }
+        let stockChartInstances = {};
+        function renderStockCharts() {
+            const profitEl = document.getElementById('profitBreakdown');
+            let breakdownHtml = '<div style="font-weight:bold;color:#667eea;margin-bottom:12px;font-size:1.05rem;">💡 Profit per Companie</div>';
+            state.companies.forEach(c => {
+                const owned = state.portfolio[c.id] || 0;
+                if (owned > 0) {
+                    const avgCost = (state.costBasis[c.id]||0) / owned;
+                    const currentPrice = state.prices[c.id];
+                    const profitPerShare = currentPrice - avgCost;
+                    const totalP = profitPerShare * owned;
+                    breakdownHtml += `<div class="profit-row">
+                        <span>${c.emoji||'🏢'} <strong>${c.name}</strong> <span style="color:#888;font-size:0.85rem">${owned}× avg ${Math.round(avgCost*10)/10}→${currentPrice} 💰</span></span>
+                        <span class="${totalP>=0?'profit-pos':'profit-neg'}">${totalP>=0?'+':''}${Math.round(totalP*10)/10} 💰</span>
+                    </div>`;
+                }
+            });
+            const realized = Math.round((state.realizedProfit||0)*10)/10;
+            if (realized !== 0) breakdownHtml += `<div class="profit-row"><span>💸 Profit realizat din vânzări</span><span class="${realized>=0?'profit-pos':'profit-neg'}">${realized>=0?'+':''}${realized} 💰</span></div>`;
+            const totalProfit = calcProfit();
+            breakdownHtml += `<div class="profit-row"><span>✨ PROFIT NET TOTAL</span><span class="${totalProfit>=0?'profit-pos':'profit-neg'}">${totalProfit>=0?'+':''}${totalProfit} 💰</span></div>`;
+            profitEl.innerHTML = breakdownHtml;
+
+            const grid = document.getElementById('stockChartsGrid');
+            Object.values(stockChartInstances).forEach(ch => ch.destroy());
+            stockChartInstances = {};
+            grid.innerHTML = state.companies.map(c => `
+                <div class="stock-chart-card">
+                    <h3>${c.emoji||'🏢'} ${c.name} — <span style="color:#667eea">${state.prices[c.id]} 💰</span>
+                        <span style="font-size:0.8rem;color:${state.prices[c.id]>=(state.initialPrices[c.id]||state.prices[c.id])?'#2ecc71':'#e74c3c'}">(start: ${state.initialPrices[c.id]||state.prices[c.id]} 💰)</span></h3>
+                    <canvas id="sc_${c.id}" height="140"></canvas>
+                </div>`).join('');
+
+            state.companies.forEach(c => {
+                const history = state.priceHistory[c.id] || [];
+                const labels = [...history.map(h=>`W${h.week}`), `W${state.week}*`];
+                const data = [...history.map(h=>h.price), state.prices[c.id]];
+                const ctx = document.getElementById('sc_' + c.id);
+                if (!ctx) return;
+                stockChartInstances[c.id] = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels, datasets: [{ label: 'Preț', data, borderColor: c.color||'#667eea', backgroundColor: (c.color||'#667eea')+'22', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 3 }] },
+                    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8892aa', callback: v=>v+' 💰' }, beginAtZero: false }, x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8892aa', maxTicksLimit: 8 } } } }
+                });
+            });
+        }
+        function render() {
+            const total = calcTotal(), profit = calcProfit();
+            document.getElementById('money').textContent = state.money;
+            document.getElementById('total').textContent = total;
+            document.getElementById('profit').textContent = profit;
+            document.getElementById('profit').style.color = profit >= 0 ? '#22d47b' : '#f04f5b';
+            document.getElementById('week').textContent = state.week;
+            document.getElementById('year').textContent = state.year;
+            const container = document.getElementById('companies');
+            container.innerHTML = state.companies.map(c => {
+                const owned = state.portfolio[c.id] || 0;
+                const price = state.prices[c.id];
+                const initPrice = state.initialPrices[c.id] || price;
+                const change = price - initPrice;
+                const logoDisplay = c.logoUrl
+                    ? `<img src="${c.logoUrl}" class="company-logo-img" onerror="this.outerHTML='<div style=\\'font-size:3.5rem\\'>${c.emoji||'🏢'}</div>'">`
+                    : `<div style="font-size:3.5rem">${c.emoji||'🏢'}</div>`;
+                return `<div class="company" style="background:${c.color};">
+                    <div class="company-logo-display">${logoDisplay}</div>
+                    <div class="company-name">${c.name}</div>
+                    <div class="company-stats">
+                        <div class="price">${price} 💰 <span style="color:${change>=0?'#22d47b':'#f04f5b'};font-size:0.95rem;">${change>=0?'📈+':'📉'}${change}</span></div>
+                        ${owned>0?`<div class="owned">Ai ${owned} = ${owned*price} 💰</div>`:''}
+                    </div>
+                    <div class="buttons">
+                        <div class="qty-wrapper">
+                            <input class="qty-input" type="number" id="qty_${c.id}" value="1" min="1" max="999" inputmode="numeric" onclick="event.stopPropagation()">
+                            <div class="qty-arrows">
+                                <button class="qty-btn" onclick="changeQty('${c.id}',1)">▲</button>
+                                <button class="qty-btn" onclick="changeQty('${c.id}',-1)">▼</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-buy" onclick="buy('${c.id}')">📈 Cumpără</button>
+                        <button class="btn btn-sell" onclick="sell('${c.id}')" ${owned===0?'disabled':''}>📉 Vinde</button>
+                    </div>
+                </div>`;
+            }).join('');
+            if (document.getElementById('chartContainer').style.display !== 'none') renderChart();
+        }
+        function changeQty(id, delta) {
+            const el = document.getElementById('qty_' + id);
+            if (!el) return;
+            el.value = Math.max(1, (parseInt(el.value) || 1) + delta);
+        }
+        function buy(id) {
+            const price = state.prices[id];
+            const comp = state.companies.find(c => c.id === id);
+            const qty = Math.max(1, parseInt(document.getElementById('qty_'+id)?.value) || 1);
+            const total = price * qty;
+            if (state.money >= total) {
+                state.money -= total;
+                state.portfolio[id] = (state.portfolio[id]||0) + qty;
+                state.costBasis[id] = (state.costBasis[id]||0) + total;
+                state.transactions.unshift({ week:state.week, year:state.year, company:comp.name, emoji:comp.emoji||'🏢', action:'buy', qty, price, total });
+                showMsg(`Bravo! +${qty} ${comp.emoji||comp.name}!`);
+                render(); save();
+            } else {
+                const max = Math.floor(state.money / price);
+                showMsg(max > 0 ? `😢 Insuficient! Max ${max}` : '😢 Insuficient!');
+            }
+        }
+        function sell(id) {
+            const comp = state.companies.find(c => c.id === id);
+            const owned = state.portfolio[id] || 0;
+            if (owned > 0) {
+                const price = state.prices[id];
+                const qty = Math.min(owned, Math.max(1, parseInt(document.getElementById('qty_'+id)?.value)||1));
+                const avgCost = (state.costBasis[id]||0) / owned;
+                const gainLoss = (price - avgCost) * qty;
+                state.money += price * qty;
+                state.portfolio[id] -= qty;
+                state.costBasis[id] = Math.max(0, (state.costBasis[id]||0) - avgCost * qty);
+                state.realizedProfit = (state.realizedProfit||0) + gainLoss;
+                state.transactions.unshift({ week:state.week, year:state.year, company:comp.name, emoji:comp.emoji||'🏢', action:'sell', qty, price, total:price*qty, gainLoss:Math.round(gainLoss*10)/10 });
+                showMsg(`Vândut ${qty} ${comp.emoji||comp.name}!`);
+                render(); save();
+            }
+        }
+        function nextWeek() {
+            state.companies.forEach(c => {
+                if (!state.priceHistory[c.id]) state.priceHistory[c.id] = [];
+                state.priceHistory[c.id].push({ week:state.week, year:state.year, price:state.prices[c.id] });
+                const chg = (Math.random() - 0.4) * 3;
+                state.prices[c.id] = Math.max(5, Math.round(state.prices[c.id] + chg));
+            });
+            state.week++;
+            if (state.week > 52) { state.week = 1; state.year++; }
+            state.history.push({ week:state.week, year:state.year, total:calcTotal() });
+            showMsg(`📅 Week ${state.week}, ${state.year}!`);
+            render(); save();
+        }
+
+        // Export: folosim modal cu copy pe iOS, download link pe alte browsere
+        let exportJsonData = '';
+        function exportData() {
+            try {
+                const allData = { version:'2.0', exportDate:new Date().toISOString(), players:loadAll() };
+                exportJsonData = JSON.stringify(allData, null, 2);
+                if (isIOS) {
+                    document.getElementById('exportText').textContent = exportJsonData;
+                    document.getElementById('exportModal').style.display = 'flex';
+                } else {
+                    const blob = new Blob([exportJsonData], { type:'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `investitii_${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    showMsg('✅ Exportat!');
+                }
+            } catch (e) { alert('Eroare: ' + e.message); }
+        }
+        function copyExportData() {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(exportJsonData).then(() => {
+                    showMsg('✅ Copiat în clipboard!');
+                    closeModal('exportModal');
+                }).catch(() => fallbackCopy());
+            } else { fallbackCopy(); }
+        }
+        function fallbackCopy() {
+            const el = document.getElementById('exportText');
+            const range = document.createRange();
+            range.selectNode(el);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            document.execCommand('copy');
+            window.getSelection().removeAllRanges();
+            showMsg('✅ Copiat!');
+            closeModal('exportModal');
+        }
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data.players) throw new Error('Invalid!');
+                    if (!confirm(`Import ${data.players.length} jucători?`)) return;
+                    data.players.forEach(p => {
+                        localStorage.setItem('player:' + p.name, JSON.stringify(p));
+                    });
+                    showMsg(`✅ ${data.players.length} importați!`);
+                    setTimeout(() => { document.getElementById('game').style.display = 'none'; showList(); }, 1500);
+                } catch (e) { alert('Eroare: ' + e.message); }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+        showList();
+    </script>
+</body>
+</html>
